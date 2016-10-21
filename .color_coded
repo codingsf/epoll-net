@@ -1,0 +1,5 @@
+-x
+c++
+-I/home/edolphin/documents/cpp/net/net
+-Wall
+-std=c++11
