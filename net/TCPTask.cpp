@@ -58,12 +58,12 @@ void TCPTask::doRun() {
 }
 
 bool TCPTask::send(BYTE* buf, DWORD size) {
-	int ret = Protocal::sendToBuf(sock, buf, size);
+	int ret = Protocal::send(sock, buf, size);
 	return ret == size;
 }
 
 bool TCPTask::msgParse(BYTE* buf, DWORD size) {
-	printf("thread(%llu):%s\n", Thread::getCurrentThreadId(), buf);
+	//printf("thread(%llu):%s\n", Thread::getCurrentThreadId(), buf);
 	return true;
 }
 

@@ -35,7 +35,7 @@ int BasicByteBuff::write(const BYTE* buf, DWORD size) {
 		return 0;
 	}
 	
-	AutoWLock awl(lock);
+	AutoLock l(lock);
 	ensureSpaceEnough(size);
 	memcpy(&buffer[writePos], (const void*)buf, size);
 	writePos += size;
@@ -51,7 +51,10 @@ int BasicByteBuff::read(BYTE* buf, DWORD maxSize) {
 		return 0;
 	}
 
-	AutoRLock arl(lock);
+	AutoLock l(lock);
+	if (dataSize < maxSize) {
+		return 0;
+	}
 	int readSize = maxSize > dataSize? dataSize: maxSize;
 	memcpy(buf, &this->buffer[readPos], readSize);
 	dataSize -= readSize;
@@ -60,7 +63,7 @@ int BasicByteBuff::read(BYTE* buf, DWORD maxSize) {
 }
 	
 void BasicByteBuff::freeSpace() {
-	AutoWLock awl(lock);
+	AutoLock l(lock);
 
 	if (dataSize == 0) {
 		return;
@@ -69,7 +72,7 @@ void BasicByteBuff::freeSpace() {
 	writePos -= readPos;
 	readPos = 0;
 }
-
+	
 void BasicByteBuff::ensureSpaceEnough(DWORD size) {
 	if (bufferSize - dataSize >= size) {
 		return;

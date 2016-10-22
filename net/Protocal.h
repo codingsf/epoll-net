@@ -36,7 +36,7 @@ class Socket;
 class Protocal {
 public:
 	static int send(Socket* socket, BYTE* data, DWORD size);
-	static int sendToBuf(Socket* socket, BYTE* data, DWORD size);
+	//static int sendToBuf(Socket* socket, BYTE* data, DWORD size);
 	static int recv(Socket* socket, BYTE* buf, DWORD maxSize);
 };
 

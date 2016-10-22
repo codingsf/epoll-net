@@ -44,7 +44,7 @@ private:
 	DWORD writePos;
 	DWORD readPos;
 
-	RWLock lock;
+	Lock lock;
 };
 
 NAMESPACE_END

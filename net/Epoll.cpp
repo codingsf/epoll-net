@@ -70,6 +70,7 @@ void Epoll::handleAccept(Socket* servsock) {
 	while (1) {
 		Socket* cliSock = servsock->accept();
 		if (cliSock != NULL) {
+			cliSock->makeNonBlocking();
 			cliSock->setEpoll(this);
 			setEvent(cliSock, EPOLL_ALL_EVENT);
 			if (servsock->getListener() != nullptr) {
@@ -97,9 +98,6 @@ void Epoll::handleOutputBuffer(Socket* sock) {
 
 void Epoll::handleError(Socket* sock) {
 	sock->close();
-	if (sock->getListener() != nullptr) {
-		sock->getListener()->onSocketClosed(sock);
-	}
 }
 
 void Epoll::close() {

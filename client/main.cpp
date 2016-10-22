@@ -6,6 +6,8 @@
 #include "Utils.h"
 #include <stdio.h>
 #include <string.h>
+#include <memory.h>
+#include <malloc.h>
 
 using namespace net;
 
@@ -19,13 +21,16 @@ public:
 			printf("connect fail\n");
 		}
 
-		for (int i = 0; i < 100000; ++i) {
-			char buf[10];
-			snprintf(buf, 10, "%d", i);
-			int ret = Protocal::send(sock, (BYTE*)buf, sizeof(i));
+		int sendSize = 0;
+		int i=0;
+		while(1) {
+			char buf[10] = {0};
+			snprintf(buf, 10, "%d", i++);
+			int ret = Protocal::send(sock, (BYTE*)buf, strlen(buf) + 1);
 			if (ret <=0 ) {
 				printf("send fail\n");
 			}
+			sendSize += 12 + strlen(buf) + 1;
 		}
 
 		sock->close();
@@ -34,6 +39,9 @@ public:
 
 int main() {
 
+	//char* buf = (char*)malloc(65536);
+	//memmove(buf, buf+12, 65524);
+	//buf = (char*)realloc(buf, 65536*2);
 	printf("%lu, %lu, %lu\n", sizeof(unsigned int), sizeof(unsigned long int), sizeof(unsigned long long));
 	printf("%lu\n", Utils::getMillionTimeStamp());
 
@@ -48,13 +56,6 @@ int main() {
 	}
 
 	printf("%lu\n", Utils::getMillionTimeStamp());
-	//Socket* sock = new Socket();
-	//if (!sock->connect("localhost", 9998)) {
-		//printf("connect fail\n");
-	//}
-
-	//Protocal::send(sock, (BYTE*)"END", 4);
-	//sock->close();
 
 	return 0;
 }

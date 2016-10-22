@@ -83,9 +83,6 @@ bool Server::start() {
 		return false;
 	}
 	epollteg->execute(epolltask);
-	//while (!this->finished) {
-		//this->epoll->doEpoll(this->servsock);
-	//}
 	return true;
 }
 

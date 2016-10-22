@@ -120,7 +120,7 @@ bool Socket::listen() {
 Socket* Socket::accept() {
 	int client_sock = ::accept(sock, (struct sockaddr*)NULL, NULL);
 	if (client_sock == -1) {
-		if (errno == EAGAIN || errno == EWOULDBLOCK) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ECONNABORTED || errno == EPROTO ) {
 			return NULL;
 		}
 		printf("accept fail, error: %s(errno:%d)\n", strerror(errno), errno);	
@@ -136,10 +136,25 @@ void Socket::close() {
 		epoll->delEvent(this, EPOLL_ALL_EVENT);
 	}
 	::close(sock);
+	if (listener != nullptr) {
+		listener->onSocketClosed(this);
+	}
 }
 	
 int Socket::send(BYTE* buf, DWORD size) {
 	return sendInternal(buf, size);
+	//if (buf == nullptr || size == 0) {
+		//return 0;
+	//}
+
+	//int ret = write(sock, buf, size);
+	//if (ret != size && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+		//ret = sendToBuf(buf+ret, size - ret);
+		//ret = sendToBuf(buf, size);
+	//} else if (ret == -1) {
+		//close();
+	//}
+	//return ret;
 }
 
 int Socket::sendToBuf(BYTE* buf, DWORD size) {
@@ -148,35 +163,52 @@ int Socket::sendToBuf(BYTE* buf, DWORD size) {
 
 int Socket::flush() {
 	BYTE buff[1024];
-	int sendSize = sendBuff->getDataSize();
+	int sendSize = 0;
 	while(sendBuff->getDataSize() > 0) {
 		int size = sendBuff->read(buff, 1024);
-		sendInternal(buff, size);
+		int ret = sendInternal(buff, size);
+		if (ret == size) {
+			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				break;
+			}
+		}
+		if (ret <= 0) {
+			break;
+		}
+		sendSize += ret;
 	}
-	sendBuff->freeSpace();
+	if (sendSize > 0) {
+		sendBuff->freeSpace();
+	}
 	return sendSize;
 }
 
 int Socket::recv(BYTE* buf, DWORD size) {
-	if (recvBuff->getDataSize() >= size) {
-		int ret = recvBuff->read(buf, size);
+	int ret = recvBuff->read(buf, size);
+	if (ret > 0) {
 		recvBuff->freeSpace();
-		return ret;
 	}
-	return 0;
+	return ret;
 }
 
 int Socket::recvToBuf() {
 	BYTE buf[1024];
-	int ret = recvInternal(buf, 1024);
 	int bufferedSize = 0;
-	while(ret > 0) {
+	while(1) {
+		int ret = recvInternal(buf, 1024);
+		if (ret == -1) {
+			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				break;
+			}
+		}
+		if (ret == 0) {
+			break;
+		}
 		int bufret = recvBuff->write(buf, ret);
 		if (ret != bufret) {
 			printf("[WARN] recvToBuf, write to buf size != recv size\n");
 		}
 		bufferedSize += bufret;
-		ret = recvInternal(buf, 1024);
 	};
 	return bufferedSize;
 }
@@ -184,8 +216,10 @@ int Socket::recvToBuf() {
 int Socket::sendInternal(BYTE* buf, DWORD size) {
 	int ret = write(sock, buf, size);
 	if (ret == -1) {
-		printf("send fail, close socket\n");
-		//close();	
+		if (errno != EAGAIN && errno != EWOULDBLOCK) {
+			printf("send fail, close socket\n");
+			close();	
+		}
 	}
 	return ret;
 }
@@ -193,8 +227,10 @@ int Socket::sendInternal(BYTE* buf, DWORD size) {
 int Socket::recvInternal(BYTE* buf, DWORD size) {
 	int ret = read(sock, buf, size);
 	if (ret == -1) {
-		printf("recv fail, close socket\n");
-		//close();
+		if (errno != EAGAIN && errno != EWOULDBLOCK) {
+			printf("recv fail, close socket\n");
+			close();	
+		}
 	}
 	return ret;
 }
